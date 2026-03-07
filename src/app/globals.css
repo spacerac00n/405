@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+:root {
+  --background: #040816;
+  --foreground: #eef5ff;
+  --font-sans: "Sora", "Avenir Next", "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", "Sora", "Avenir Next", sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+  color: var(--foreground);
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  background-image:
+    linear-gradient(180deg, rgba(4, 8, 22, 0.88), rgba(4, 8, 22, 1)),
+    radial-gradient(circle at top, rgba(83, 212, 255, 0.08), transparent 28%),
+    radial-gradient(circle at bottom, rgba(255, 125, 140, 0.08), transparent 22%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(circle at center, black 35%, transparent 90%);
+  opacity: 0.2;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: rgba(83, 212, 255, 0.28);
+  color: white;
+}
+
+.orbit-spin {
+  animation: orbit-spin 34s linear infinite;
+}
+
+@keyframes orbit-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
