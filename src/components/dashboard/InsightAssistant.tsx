@@ -66,11 +66,29 @@ function deriveStatus(tier: SlotTier): {
   return                 { label: "Below average",        textColor: "text-emerald-400", bgColor: "bg-emerald-500/[0.08]" };
 }
 
+const APPLIANCE_SUGGESTION: Record<string, string> = {
+  cooling: "Shift aircon start later or raise the temperature",
+  heater:  "Shorten heater runtime",
+  laundry: "Move washing machine to an off-peak slot",
+};
+
+const APPLIANCE_ACTION_HIGH: Record<string, string> = {
+  cooling: "Shift aircon start later or raise the temperature — this is your biggest lever right now.",
+  heater:  "Shorten hot-water heater runtime to cut this spike.",
+  laundry: "Move this wash cycle to off-peak hours — it’s the clearest action for this spike.",
+};
+
+const APPLIANCE_ACTION_ABOVE: Record<string, string> = {
+  cooling: "A small raise in temperature or a later start time would trim this slot noticeably.",
+  heater:  "Shortening heater runtime a little would smooth this slot.",
+  laundry: "Shifting the washing machine to an off-peak slot would reduce demand here.",
+};
+
 function fallbackChipText(
   chip: ChipId,
   tier: SlotTier,
+  topAppliance: string | null,
   reasonFacts: string[],
-  actionTags: string[],
 ): string {
   const isHigh  = tier === "high";
   const isAbove = tier === "above";
@@ -84,11 +102,8 @@ function fallbackChipText(
     return "Nice work — this slot stayed within your normal pattern.";
   }
   if (chip === "action") {
-    if ((isHigh || isAbove) && actionTags[0]?.toLowerCase().includes("heater")) {
-      return "The clearest savings opportunity likely sits in shower heating. Shorten heater runtime — treat it as a probable lever, not exact appliance truth.";
-    }
-    if (isHigh && actionTags[0])  return `${actionTags[0]} — this is a high spike, so shifting or reducing usage here would have the biggest impact.`;
-    if (isAbove && actionTags[0]) return `${actionTags[0]} — a small shift here reduces your peak-hour demand and eases pressure on the grid.`;
+    if (isHigh && topAppliance && APPLIANCE_ACTION_HIGH[topAppliance])  return APPLIANCE_ACTION_HIGH[topAppliance]!;
+    if (isAbove && topAppliance && APPLIANCE_ACTION_ABOVE[topAppliance]) return APPLIANCE_ACTION_ABOVE[topAppliance]!;
     if (isBelow) return "Keep it going — you're building a smart energy-saving habit.";
     return "Keep up the good work — your usage looks well managed.";
   }
@@ -118,9 +133,12 @@ export function InsightAssistant({
   const bars       = selectedSlot ? buildApplianceBars(selectedSlot, scores) : [];
   const topBar     = bars[0];
   const topProfile = topBar && topBar.energyShare > 0 ? applianceProfiles[topBar.appliance] : null;
+  const topAppliance = topBar?.appliance ?? null;
   const status     = deriveStatus(tier);
-  const actionLine = actionTags[0] ?? "No action needed";
   const isActionableState = tier === "high" || tier === "above";
+  const actionLine = !topProfile && isActionableState
+    ? "Caused by other appliances"
+    : (topAppliance && APPLIANCE_SUGGESTION[topAppliance]) ?? actionTags[0] ?? "No action needed";
 
   function handleChip(chip: ChipId, mode: AssistantMode) {
     const next = activeChip === chip ? null : chip;
@@ -140,7 +158,7 @@ export function InsightAssistant({
     : hasAiResponse && (answer || error)
       ? (error ?? answer!)
       : activeChip
-        ? fallbackChipText(activeChip, tier, reasonFacts, actionTags)
+        ? fallbackChipText(activeChip, tier, topAppliance, reasonFacts)
         : null;
 
   return (
