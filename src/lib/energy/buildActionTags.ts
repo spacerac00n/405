@@ -19,7 +19,6 @@ export function buildActionTags(
 
   if (top.appliance === "heater") {
     tags.add("Shorten heater runtime");
-    tags.add("Group showers closer together");
   }
 
   if (top.appliance === "laundry") {

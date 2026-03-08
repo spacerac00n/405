@@ -58,10 +58,14 @@ export function buildApplianceBars(slot: EnergySlot, scores: ApplianceScore[]): 
     }
   });
 
-  // Cooling priority: when active, cooling always leads the chart.
+  // Cooling priority: when cooling has the highest raw score, ensure it leads
+  // the visual chart too — prevents normalization artefacts from swapping the
+  // displayed winner away from what the habit-based scoring determined.
   const coolingIdx = VISUAL_APPLIANCES.indexOf("cooling");
+  const coolingRawScore = scoreMap.get("cooling") ?? 0;
+  const topRawScore = Math.max(...VISUAL_APPLIANCES.map((a) => scoreMap.get(a) ?? 0));
   const coolingShare = cappedShares[coolingIdx];
-  if (coolingShare > 0) {
+  if (coolingRawScore === topRawScore && coolingRawScore > 0) {
     const otherMax = cappedShares.reduce(
       (max, share, i) => (i !== coolingIdx ? Math.max(max, share) : max),
       0,
@@ -71,10 +75,10 @@ export function buildApplianceBars(slot: EnergySlot, scores: ApplianceScore[]): 
     }
   }
 
-  // Heater constraint: must stay strictly below cooling when both are active.
+  // Heater constraint: must stay strictly below cooling when cooling leads in raw score.
   const heaterIdx = VISUAL_APPLIANCES.indexOf("heater");
   const finalCooling = cappedShares[coolingIdx];
-  if (finalCooling > 0 && cappedShares[heaterIdx] >= finalCooling) {
+  if (coolingRawScore === topRawScore && coolingRawScore > 0 && cappedShares[heaterIdx] >= finalCooling) {
     cappedShares[heaterIdx] = Math.max(finalCooling - 0.05, 0);
   }
 

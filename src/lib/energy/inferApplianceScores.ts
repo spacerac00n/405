@@ -71,24 +71,28 @@ export function inferApplianceScores(
   // This is the primary mechanism that keeps appliances off during irrelevant
   // hours — habitat boosts only apply once the window check passes.
 
-  // Cooling: must be within the user's stated aircon window.
+  // Cooling: must be within the user's stated aircon window AND used at least occasionally.
   // day_and_night is always in-window.
-  // "varies" qualifies if the user runs AC at least a few nights a week.
-  // Evening AC often starts mid-to-late afternoon, so extend to 15:30.
+  // "rarely" disqualifies even if the slot is in the stated window — habit is too weak.
+  // Evening AC starts from mid-afternoon (15:30) to capture pre-cool periods.
+  // Overnight AC is active from 21:00 through to early morning (8:00).
   const coolingFit =
-    profile.airconFrequency === "day_and_night" ||
-    (profile.airconWindow === "varies"    && profile.airconFrequency !== "rarely") ||
-    (profile.airconWindow === "overnight" && (hour >= 21 || hour < 8)) ||
-    (profile.airconWindow === "evening"   && hour >= 15.5 && hour < 24) ||
-    (profile.airconWindow === "afternoon" && hour >= 12 && hour < 18);
+    profile.airconFrequency !== "rarely" && (
+      profile.airconFrequency === "day_and_night" ||
+      (profile.airconWindow === "varies") ||
+      (profile.airconWindow === "overnight" && (hour >= 21 || hour < 8)) ||
+      (profile.airconWindow === "evening"   && hour >= 15.5 && hour < 24) ||
+      (profile.airconWindow === "afternoon" && hour >= 12 && hour < 18)
+    );
 
   // Heater: must be within the user's stated shower window.
-  // Evening window starts at 17:00 to capture post-work / late-afternoon showers.
+  // Morning window: 5:30–9:30 (pre-work showers).
+  // Evening window: 17:00–22:00 — most households shower by 10 pm; 22:30 is outside.
   const heaterFit =
     (profile.showerWindow === "morning" && isWithinWindow(hour, 5.5, 9.5)) ||
-    (profile.showerWindow === "evening" && isWithinWindow(hour, 17.0, 23.0)) ||
+    (profile.showerWindow === "evening" && isWithinWindow(hour, 17.0, 22.0)) ||
     (profile.showerWindow === "both"    && (
-      isWithinWindow(hour, 5.5, 9.5) || isWithinWindow(hour, 17.0, 23.0)
+      isWithinWindow(hour, 5.5, 9.5) || isWithinWindow(hour, 17.0, 22.0)
     ));
 
   // Laundry: must be within the user's stated laundry window.
@@ -124,22 +128,32 @@ export function inferApplianceScores(
       scoringRules.cooling.frequencyBoosts[profile.airconFrequency] +
       scoringRules.cooling.durationBoosts[profile.airconDuration] +
       scoringRules.cooling.windowBoosts[profile.airconWindow];
+    // Max possible habit prior across all three dimensions (day_and_night + overnight + overnight).
     const COOLING_HABIT_MAX = 0.32 + 0.26 + 0.24;
     const habitScore = clamp(habitPrior / COOLING_HABIT_MAX, 0, 1);
-    const spikeContrib = s >= 0.25 ? scoringRules.cooling.spikeWeight * s : 0;
-    buckets.cooling.raw = clamp(habitScore * 0.65 + spikeContrib + 0.10, 0, 1);
+    // Cooling requires a more pronounced spike to contribute — AC draws sustained load,
+    // not a short burst, so moderate spikes only weakly confirm it.
+    const spikeContrib = s >= 0.20 ? scoringRules.cooling.spikeWeight * s : 0;
+    // Weight: habit is the dominant signal (0.75) because frequency + duration together
+    // encode how reliably the user runs AC.
+    buckets.cooling.raw = clamp(habitScore * 0.75 + spikeContrib + 0.08, 0, 1);
     pushReason(buckets.cooling, "The time slot aligns with the reported air conditioning window.");
     if (s > 0.30) pushReason(buckets.cooling, "The spike magnitude supports active cooling load.");
+    if (profile.airconFrequency === "almost_nightly" || profile.airconFrequency === "day_and_night")
+      pushReason(buckets.cooling, "Frequent AC use makes cooling the most likely contributor during this period.");
   }
 
   if (heaterFit) {
     const habitPrior =
       scoringRules.heater.windowBoosts[profile.showerWindow] +
       scoringRules.heater.durationBoosts[profile.showerLength];
-    const HEATER_HABIT_MAX = 0.22 + 0.22;
+    // Max: both windows (0.22) + long showers (0.22) — but also temper by narrower window.
+    // Using 0.44 + 0.06 buffer = 0.50 to slightly reduce the ceiling vs cooling.
+    const HEATER_HABIT_MAX = 0.50;
     const habitScore = clamp(habitPrior / HEATER_HABIT_MAX, 0, 1);
-    const spikeContrib = s >= 0.15 ? scoringRules.heater.spikeWeight * s : 0;
-    buckets.heater.raw = clamp(habitScore * 0.65 + spikeContrib + 0.10, 0, 1);
+    // Heater spikes are typically short bursts; only contribute when spike is moderate+.
+    const spikeContrib = s >= 0.20 ? scoringRules.heater.spikeWeight * s : 0;
+    buckets.heater.raw = clamp(habitScore * 0.65 + spikeContrib + 0.08, 0, 1);
     pushReason(buckets.heater, "The slot falls within the reported shower / water-heating period.");
     if (s > 0.20) pushReason(buckets.heater, "Short, sharper jumps are consistent with water-heating bursts.");
   }
