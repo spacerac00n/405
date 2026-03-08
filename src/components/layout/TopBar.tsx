@@ -27,7 +27,7 @@ export function TopBar({
     <header className="sticky top-0 z-40 border-b border-white/6 bg-[rgba(4,8,22,0.76)] backdrop-blur-2xl">
       <div className="mx-auto grid w-full max-w-[1480px] gap-4 px-4 py-4 sm:px-6 xl:grid-cols-[220px_1fr_auto] xl:items-center xl:px-8">
         <div className="flex items-center">
-          <img src="/icons/SP_Group_Logo.svg" alt="SP Group" className="h-13 w-auto" />
+          <img src="/icons/SP_Group_Logo.svg" alt="SP Group" className="h-13 w-auto -translate-y-0.5" />
         </div>
         <div className="flex justify-start xl:justify-center">
           <TabSwitcher activeTab={activeTab} onChange={onTabChange} />

@@ -167,7 +167,7 @@ export function InsightAssistant({
       {/* ── Header row ─────────────────────────── */}
       <div className="flex items-center justify-between">
         <p className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
-          Insight Assistant
+          Daily Insight Assistant
         </p>
       </div>
 
