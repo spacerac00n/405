@@ -35,8 +35,8 @@ const stepMeta: Record<
   },
   aircon: {
     badge: "Step 2",
-    title: "Map the cooling pattern",
-    caption: "Late-night cooling is one of the strongest contributors to spikes.",
+    title: "Map the aircon pattern",
+    caption: "Late-night aircon is one of the strongest contributors to spikes.",
   },
   heater: {
     badge: "Step 3",

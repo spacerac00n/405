@@ -37,6 +37,8 @@ export default function Home() {
           {activeTab === "understand" ? (
             <UnderstandTab
               weeklySummary={dashboard.weeklySummary}
+              allDays={dashboard.allDays}
+              profile={dashboard.profile}
               selectedDay={dashboard.selectedDay}
               selectedSlot={dashboard.selectedSlot}
               selectedSpikes={dashboard.selectedSpikes}

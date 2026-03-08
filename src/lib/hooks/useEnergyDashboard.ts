@@ -312,6 +312,7 @@ export function useEnergyDashboard() {
 
   return {
     profile,
+    allDays: daySeries,
     challenges,
     onboardingOpen,
     datasetOrigin,

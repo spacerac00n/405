@@ -4,21 +4,24 @@ import type { EnergySlot } from "@/types/energy";
 import type { ApplianceScore } from "@/types/insights";
 
 import { impactConfig } from "@/lib/config/impactConfig";
-import { buildApplianceBars } from "@/lib/energy/buildApplianceBars";
+import { buildApplianceBars, type ApplianceBar } from "@/lib/energy/buildApplianceBars";
 import { cn } from "@/lib/utils";
 
 type OrbitVisualizationProps = {
   slot: EnergySlot | null;
   scores: ApplianceScore[];
   size?: "hero" | "summary";
+  /** When provided (e.g. Monthly mode), bypasses slot-level scoring and renders these bars directly. */
+  overrideBars?: ApplianceBar[];
 };
 
 export function OrbitVisualization({
   slot,
   scores,
   size = "hero",
+  overrideBars,
 }: OrbitVisualizationProps) {
-  if (!slot) {
+  if (!slot && !overrideBars) {
     return (
       <div
         className={cn(
@@ -34,7 +37,7 @@ export function OrbitVisualization({
   // buildApplianceBars is the single source of truth for appliance ranking.
   // InsightAssistant calls the same function so "Strongest signal" and
   // "Main use" are always derived from an identical sort order.
-  const bars = buildApplianceBars(slot, scores);
+  const bars = overrideBars ?? buildApplianceBars(slot!, scores);
   const top = bars[0];
 
   return (
